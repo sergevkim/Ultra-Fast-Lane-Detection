@@ -1,6 +1,6 @@
 # DATA
 dataset='CULane'
-data_root = None
+data_root = '/home/sergei/git/lanes/ultrafastlane/culane'
 
 # TRAIN
 epoch = 50

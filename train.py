@@ -81,12 +81,12 @@ def train(net, data_loader, loss_dict, optimizer, scheduler,logger, epoch, metri
 
         if hasattr(progress_bar,'set_postfix'):
             kwargs = {me_name: '%.3f' % me_op.get() for me_name, me_op in zip(metric_dict['name'], metric_dict['op'])}
-            progress_bar.set_postfix(loss = '%.3f' % float(loss), 
-                                    data_time = '%.3f' % float(t_data_1 - t_data_0), 
-                                    net_time = '%.3f' % float(t_net_1 - t_net_0), 
+            progress_bar.set_postfix(loss = '%.3f' % float(loss),
+                                    data_time = '%.3f' % float(t_data_1 - t_data_0),
+                                    net_time = '%.3f' % float(t_net_1 - t_net_0),
                                     **kwargs)
         t_data_0 = time.time()
-        
+
 
 
 
@@ -111,9 +111,22 @@ if __name__ == "__main__":
     assert cfg.backbone in ['18','34','50','101','152','50next','101next','50wide','101wide']
 
 
-    train_loader, cls_num_per_lane = get_train_loader(cfg.batch_size, cfg.data_root, cfg.griding_num, cfg.dataset, cfg.use_aux, distributed, cfg.num_lanes)
+    train_loader, cls_num_per_lane = get_train_loader(
+        cfg.batch_size,
+        cfg.data_root,
+        cfg.griding_num,
+        cfg.dataset,
+        cfg.use_aux,
+        distributed,
+        cfg.num_lanes
+    )
 
-    net = parsingNet(pretrained = True, backbone=cfg.backbone,cls_dim = (cfg.griding_num+1,cls_num_per_lane, cfg.num_lanes),use_aux=cfg.use_aux).cuda()
+    net = parsingNet(
+        pretrained=True,
+        backbone=cfg.backbone,
+        cls_dim =(cfg.griding_num+1,cls_num_per_lane, cfg.num_lanes),
+        use_aux=cfg.use_aux
+    ).cuda()
 
     if distributed:
         net = torch.nn.parallel.DistributedDataParallel(net, device_ids = [args.local_rank])
@@ -149,6 +162,6 @@ if __name__ == "__main__":
     for epoch in range(resume_epoch, cfg.epoch):
 
         train(net, train_loader, loss_dict, optimizer, scheduler,logger, epoch, metric_dict, cfg.use_aux)
-        
+
         save_model(net, optimizer, epoch ,work_dir, distributed)
     logger.close()

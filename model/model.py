@@ -5,7 +5,7 @@ import numpy as np
 class conv_bn_relu(torch.nn.Module):
     def __init__(self,in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1,bias=False):
         super(conv_bn_relu,self).__init__()
-        self.conv = torch.nn.Conv2d(in_channels,out_channels, kernel_size, 
+        self.conv = torch.nn.Conv2d(in_channels,out_channels, kernel_size,
             stride = stride, padding = padding, dilation = dilation,bias = bias)
         self.bn = torch.nn.BatchNorm2d(out_channels)
         self.relu = torch.nn.ReLU()
@@ -15,6 +15,8 @@ class conv_bn_relu(torch.nn.Module):
         x = self.bn(x)
         x = self.relu(x)
         return x
+
+
 class parsingNet(torch.nn.Module):
     def __init__(self, size=(288, 800), pretrained=True, backbone='50', cls_dim=(37, 10, 4), use_aux=False):
         super(parsingNet, self).__init__()
@@ -28,12 +30,16 @@ class parsingNet(torch.nn.Module):
         self.total_dim = np.prod(cls_dim)
 
         # input : nchw,
-        # output: (w+1) * sample_rows * 4 
+        # output: (w+1) * sample_rows * 4
         self.model = resnet(backbone, pretrained=pretrained)
 
         if self.use_aux:
             self.aux_header2 = torch.nn.Sequential(
-                conv_bn_relu(128, 128, kernel_size=3, stride=1, padding=1) if backbone in ['34','18'] else conv_bn_relu(512, 128, kernel_size=3, stride=1, padding=1),
+                conv_bn_relu(
+                    128, 128, kernel_size=3, stride=1, padding=1
+                ) if backbone in ['34','18'] else conv_bn_relu(
+                    512, 128, kernel_size=3, stride=1, padding=1
+                ),
                 conv_bn_relu(128,128,3,padding=1),
                 conv_bn_relu(128,128,3,padding=1),
                 conv_bn_relu(128,128,3,padding=1),
@@ -98,13 +104,14 @@ class parsingNet(torch.nn.Module):
 def initialize_weights(*models):
     for model in models:
         real_init_weights(model)
-def real_init_weights(m):
 
+
+def real_init_weights(m):
     if isinstance(m, list):
         for mini_m in m:
             real_init_weights(mini_m)
     else:
-        if isinstance(m, torch.nn.Conv2d):    
+        if isinstance(m, torch.nn.Conv2d):
             torch.nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
             if m.bias is not None:
                 torch.nn.init.constant_(m.bias, 0)

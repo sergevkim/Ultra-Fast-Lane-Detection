@@ -8,7 +8,18 @@ from data.mytransforms import find_start_pos
 
 
 def loader_func(path):
-    return Image.open(path)
+    #img = Image.open(path)
+    img = cv2.imread(path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #top, bottom, left, right = 0, 0, 180, 180
+    #img2 = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
+    #img3 = img2[130:,:,:]
+    img3 = img[290:-200,140:-140,:]
+    #img = img[250:, :, :]
+    #img_w, img_h = 1640, 590
+    #img = cv2.resize(img, (1280, 720))
+
+    return img3
 
 
 class LaneTestDataset(torch.utils.data.Dataset):
@@ -68,7 +79,7 @@ class LaneClsDataset(torch.utils.data.Dataset):
 
         img_path = os.path.join(self.path, img_name)
         img = loader_func(img_path)
-    
+
 
         if self.simu_transform is not None:
             img, label = self.simu_transform(img, label)
@@ -154,7 +165,7 @@ class LaneClsDataset(torch.utils.data.Dataset):
             p = np.polyfit(valid_idx_half[:,0], valid_idx_half[:,1],deg = 1)
             start_line = valid_idx_half[-1,0]
             pos = find_start_pos(all_idx_cp[i,:,0],start_line) + 1
-            
+
             fitted = np.polyval(p,all_idx_cp[i,pos:,0])
             fitted = np.array([-1  if y < 0 or y > w-1 else y for y in fitted])
 

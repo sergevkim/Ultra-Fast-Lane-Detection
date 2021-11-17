@@ -7,19 +7,36 @@ import cv2
 from data.mytransforms import find_start_pos
 
 
-def loader_func(path):
-    #img = Image.open(path)
-    img = cv2.imread(path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def loader_func(path, verbose=False):
+    #img = cv2.imread(path)
+    img = Image.open(path)
+    if verbose:
+        print('WARNING! in dataset.py')
+        print(f"{bcolors.WARNING}{path}{bcolors.ENDC}")
+        print(f"{bcolors.WARNING}{type(img)}{bcolors.ENDC}")
+
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     #top, bottom, left, right = 0, 0, 180, 180
     #img2 = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
     #img3 = img2[130:,:,:]
-    img3 = img[290:-200,140:-140,:]
+    #for culane img3 = img[290:-200,140:-140,:]
     #img = img[250:, :, :]
     #img_w, img_h = 1640, 590
     #img = cv2.resize(img, (1280, 720))
 
-    return img3
+    return img
 
 
 class LaneTestDataset(torch.utils.data.Dataset):
@@ -47,8 +64,20 @@ class LaneTestDataset(torch.utils.data.Dataset):
 
 
 class LaneClsDataset(torch.utils.data.Dataset):
-    def __init__(self, path, list_path, img_transform = None,target_transform = None,simu_transform = None, griding_num=50, load_name = False,
-                row_anchor = None,use_aux=False,segment_transform=None, num_lanes = 4):
+    def __init__(
+        self,
+        path,
+        list_path,
+        img_transform=None,
+        target_transform=None,
+        simu_transform=None,
+        griding_num=50,
+        load_name=False,
+        row_anchor=None,
+        use_aux=False,
+        segment_transform=None,
+        num_lanes=4,
+    ):
         super(LaneClsDataset, self).__init__()
         self.img_transform = img_transform
         self.target_transform = target_transform
@@ -102,6 +131,7 @@ class LaneClsDataset(torch.utils.data.Dataset):
             return img, cls_label, seg_label
         if self.load_name:
             return img, cls_label, img_name
+
         return img, cls_label
 
     def __len__(self):
@@ -114,10 +144,15 @@ class LaneClsDataset(torch.utils.data.Dataset):
 
         assert n2 == 2
         to_pts = np.zeros((n, num_lane))
+
         for i in range(num_lane):
             pti = pts[i, :, 1]
-            to_pts[:, i] = np.asarray(
-                [int(pt // (col_sample[1] - col_sample[0])) if pt != -1 else num_cols for pt in pti])
+            to_pts[:, i] = np.asarray([
+                int(pt // (col_sample[1] - col_sample[0]))
+                if pt != -1 else num_cols
+                for pt in pti
+            ])
+
         return to_pts.astype(int)
 
     def _get_index(self, label):
@@ -127,22 +162,26 @@ class LaneClsDataset(torch.utils.data.Dataset):
             scale_f = lambda x : int((x * 1.0/288) * h)
             sample_tmp = list(map(scale_f,self.row_anchor))
 
-        all_idx = np.zeros((self.num_lanes,len(sample_tmp),2))
+        all_idx = np.zeros((self.num_lanes, len(sample_tmp), 2))
+
         for i,r in enumerate(sample_tmp):
             label_r = np.asarray(label)[int(round(r))]
+
             for lane_idx in range(1, self.num_lanes + 1):
                 pos = np.where(label_r == lane_idx)[0]
+
                 if len(pos) == 0:
                     all_idx[lane_idx - 1, i, 0] = r
                     all_idx[lane_idx - 1, i, 1] = -1
                     continue
+
                 pos = np.mean(pos)
                 all_idx[lane_idx - 1, i, 0] = r
                 all_idx[lane_idx - 1, i, 1] = pos
 
         # data augmentation: extend the lane to the boundary of image
-
         all_idx_cp = all_idx.copy()
+
         for i in range(self.num_lanes):
             if np.all(all_idx_cp[i,:,1] == -1):
                 continue
@@ -173,4 +212,5 @@ class LaneClsDataset(torch.utils.data.Dataset):
             all_idx_cp[i,pos:,1] = fitted
         if -1 in all_idx[:, :, 0]:
             pdb.set_trace()
+
         return all_idx_cp

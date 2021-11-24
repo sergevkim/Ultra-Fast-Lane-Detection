@@ -41,7 +41,7 @@ def get_train_loader(
             os.path.join(data_root, 'list/train_gt.txt'),
             img_transform=img_transform,
             target_transform=target_transform,
-            simu_transform = simu_transform,
+            simu_transform=simu_transform,
             segment_transform=segment_transform,
             row_anchor=culane_row_anchor,
             griding_num=griding_num,
@@ -79,6 +79,7 @@ def get_train_loader(
     )
 
     return train_loader, cls_num_per_lane
+
 
 def get_test_loader(batch_size, data_root,dataset, distributed):
     img_transforms = transforms.Compose([

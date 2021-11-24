@@ -1,9 +1,12 @@
-import torch, os
-from model.model import parsingNet
+import os
+
+import torch
+
+from evaluation.eval_wrapper import eval_lane
+from model.model import ParsingNet
 from utils.common import merge_config
 from utils.dist_utils import dist_print
-from evaluation.eval_wrapper import eval_lane
-import torch
+
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
 
@@ -26,8 +29,12 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError
 
-    net = parsingNet(pretrained = False, backbone=cfg.backbone,cls_dim = (cfg.griding_num+1,cls_num_per_lane, cfg.num_lanes),
-                    use_aux=False).cuda() # we dont need auxiliary segmentation in testing
+    net = ParsingNet(
+        pretrained=False,
+        backbone=cfg.backbone,
+        cls_dim=(cfg.griding_num+1, cls_num_per_lane, cfg.num_lanes),
+        use_aux=False,
+    ).cuda() # we dont need auxiliary segmentation in testing
 
     state_dict = torch.load(cfg.test_model, map_location = 'cpu')['model']
     compatible_state_dict = {}

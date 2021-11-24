@@ -1,17 +1,20 @@
-import torch, os, datetime
-import numpy as np
-
-from model.model import parsingNet
-from data.dataloader import get_train_loader
-
-from utils.dist_utils import dist_print, dist_tqdm, is_main_process, DistSummaryWriter
-from utils.factory import get_metric_dict, get_loss_dict, get_optimizer, get_scheduler
-from utils.metrics import MultiLabelAcc, AccTopk, Metric_mIoU, update_metrics, reset_metrics
-
-from utils.common import merge_config, save_model, cp_projects
-from utils.common import get_work_dir, get_logger
-
+import datetime
+import os
 import time
+
+import numpy as np
+import torch
+
+from data.dataloader import get_train_loader
+from model.model import ParsingNet
+from utils.common import (cp_projects, get_logger, get_work_dir, merge_config,
+                          save_model)
+from utils.dist_utils import (DistSummaryWriter, dist_print, dist_tqdm,
+                              is_main_process)
+from utils.factory import (get_loss_dict, get_metric_dict, get_optimizer,
+                           get_scheduler)
+from utils.metrics import (AccTopk, Metric_mIoU, MultiLabelAcc, reset_metrics,
+                           update_metrics)
 
 
 def inference(net, data_label, use_aux):
@@ -54,14 +57,28 @@ def calc_loss(loss_dict, results, logger, global_step):
         loss_cur = loss_dict['op'][i](*datas)
 
         if global_step % 20 == 0:
-            logger.add_scalar('loss/'+loss_dict['name'][i], loss_cur, global_step)
+            logger.add_scalar(
+                'loss/' + loss_dict['name'][i],
+                loss_cur,
+                global_step,
+            )
 
         loss += loss_cur * loss_dict['weight'][i]
 
     return loss
 
 
-def train(net, data_loader, loss_dict, optimizer, scheduler,logger, epoch, metric_dict, use_aux):
+def train(
+    net,
+    data_loader,
+    loss_dict,
+    optimizer,
+    scheduler,
+    logger,
+    epoch,
+    metric_dict,
+    use_aux,
+):
     net.train()
     progress_bar = dist_tqdm(train_loader)
     t_data_0 = time.time()
@@ -98,7 +115,7 @@ def train(net, data_loader, loss_dict, optimizer, scheduler,logger, epoch, metri
             global_step=global_step,
         )
 
-        if hasattr(progress_bar,'set_postfix'):
+        if hasattr(progress_bar, 'set_postfix'):
             kwargs = {
                 me_name: '%.3f' % me_op.get()
                 for me_name, me_op
@@ -144,11 +161,11 @@ if __name__ == "__main__":
         cfg.num_lanes
     )
 
-    net = parsingNet(
+    net = ParsingNet(
         pretrained=True,
         backbone=cfg.backbone,
-        cls_dim =(cfg.griding_num+1,cls_num_per_lane, cfg.num_lanes),
-        use_aux=cfg.use_aux
+        cls_dim=(cfg.griding_num+1, cls_num_per_lane, cfg.num_lanes),
+        use_aux=cfg.use_aux,
     ).cuda()
 
     if distributed:
@@ -189,7 +206,17 @@ if __name__ == "__main__":
     cp_projects(args.auto_backup, work_dir)
 
     for epoch in range(resume_epoch, cfg.epoch):
-        train(net, train_loader, loss_dict, optimizer, scheduler,logger, epoch, metric_dict, cfg.use_aux)
+        train(
+            net=net,
+            data_loader=train_loader,
+            loss_dict=loss_dict,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            logger=logger,
+            epoch=epoch,
+            metric_dict=metric_dict,
+            use_aux=cfg.use_aux,
+        )
         save_model(net, optimizer, epoch, work_dir, distributed)
 
     logger.close()

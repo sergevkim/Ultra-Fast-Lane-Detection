@@ -9,7 +9,7 @@ import tqdm
 
 from data.constant import culane_row_anchor, tusimple_row_anchor
 from data.dataset import LaneTestDataset
-from model.model import parsingNet
+from model.model import ParsingNet
 from utils.common import merge_config
 from utils.dist_utils import dist_print
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError
 
-    net = parsingNet(
+    net = ParsingNet(
         pretrained=False,
         backbone=cfg.backbone,
         cls_dim=(cfg.griding_num+1,cls_num_per_lane,4),

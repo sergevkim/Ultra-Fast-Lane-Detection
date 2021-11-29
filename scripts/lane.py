@@ -30,6 +30,7 @@ class Lane:
     def get_points_from_horizontal_curves_(self, horizontal_curves) -> None:
         for i, horizontal_curve in enumerate(horizontal_curves):
             intersections = self.curve.intersect(horizontal_curve)
+            intersections = np.ascontiguousarray(intersections)
             intersection_point = self.curve.evaluate_multi(intersections[0, :])
 
             if intersection_point.shape[1] != 0:

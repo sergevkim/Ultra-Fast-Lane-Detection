@@ -3,12 +3,12 @@ import os
 from pathlib import Path
 
 import bezier
-import tqdm
 import cv2
 import numpy as np
+import tqdm
 
-from lane import (Lane, calc_max_distance_between_lanes, draw_middle_lane, fill_spaces_between_lanes,
-                  get_horizontal_curves)
+from lane import (Lane, calc_max_distance_between_lanes, draw_middle_lane,
+                  fill_spaces_between_lanes, get_horizontal_curves)
 
 
 def convert(
@@ -19,10 +19,13 @@ def convert(
     culane_list_path,
     limit: int = 30,
 ) -> None:
+    if limit == -1:
+        limit = len(frames_info)
+
     horizontal_curves = get_horizontal_curves()
     list_file = open(culane_list_path, 'w')
 
-    for frame_index in tqdm.tqdm(range(limit)):
+    for frame_index in tqdm.tqdm(range(min(limit, len(frames_info)))):
         frame_info = frames_info[frame_index]
         if 'labels' not in frame_info.keys():
             continue
@@ -53,7 +56,7 @@ def convert(
 
             if delta_y > 50:
                 delta_x = lane.x_max - lane.x_min
-                if delta_y / delta_x > 0.2:
+                if delta_x != 0 and delta_y / delta_x > 0.2:
                     lanes.append(lane)
 
         forbidden_indices = set()
@@ -143,6 +146,7 @@ def main():
         bdd100k_as_culane_images_path,
         bdd100k_as_culane_gt_path,
         bdd100k_as_culane_train_list_path,
+        limit=-1,
     )
     convert(
         bdd100k_val_images_path,
@@ -150,6 +154,7 @@ def main():
         bdd100k_as_culane_images_path,
         bdd100k_as_culane_gt_path,
         bdd100k_as_culane_val_list_path,
+        limit=-1,
     )
 
 

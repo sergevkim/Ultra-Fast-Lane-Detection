@@ -1,3 +1,4 @@
+bezier
 opencv-python
 tqdm
 tensorboard

@@ -1,14 +1,18 @@
-import torch, os, cv2
-from model.model import parsingNet
+import os
+
+import cv2
+import numpy as np
+import scipy.special
+import torch
+import torchvision.transforms as transforms
+import tqdm
+from PIL import Image
+
+from data.constant import culane_row_anchor, tusimple_row_anchor
+from data.dataset import LaneTestDataset
+from model.model import ParsingNet
 from utils.common import merge_config
 from utils.dist_utils import dist_print
-import torch
-import scipy.special, tqdm
-import numpy as np
-import torchvision.transforms as transforms
-from data.dataset import LaneTestDataset
-from data.constant import culane_row_anchor, tusimple_row_anchor
-from PIL import Image
 
 # Export to TorchScript that can be used for LibTorch
 
@@ -17,10 +21,14 @@ torch.backends.cudnn.benchmark = True
 # From cuLANE, Change this line if you are using TuSimple
 cls_num_per_lane = 18
 griding_num = 200
-backbone =18
+backbone = 18
 
-net = parsingNet(pretrained = False,backbone='18', cls_dim = (griding_num+1,cls_num_per_lane,4),
-                use_aux=False)
+net = ParsingNet(
+    pretrained=False,
+    backbone='18',
+    cls_dim=(griding_num+1, cls_num_per_lane, 4),
+    use_aux=False,
+)
 
 # Change test_model where your model stored.
 test_model = '/data/Models/UltraFastLaneDetection/culane_18.pth'

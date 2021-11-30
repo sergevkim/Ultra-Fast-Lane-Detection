@@ -1,12 +1,12 @@
 import torch
 import time
 import numpy as np
-from model.model import parsingNet
+from model.model import ParsingNet
 
 # torch.backends.cudnn.deterministic = False
 
 torch.backends.cudnn.benchmark = True
-net = parsingNet(pretrained = False, backbone='18',cls_dim = (100+1,56,4),use_aux=False).cuda()
+net = ParsingNet(pretrained = False, backbone='18',cls_dim = (100+1,56,4),use_aux=False).cuda()
 # net = parsingNet(pretrained = False, backbone='18',cls_dim = (200+1,18,4),use_aux=False).cuda()
 
 net.eval()

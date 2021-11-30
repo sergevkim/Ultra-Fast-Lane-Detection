@@ -1,6 +1,6 @@
 # DATA
-dataset='Tusimple'
-data_root = None
+dataset = 'Tusimple'
+data_root = '/home/sergei/git/lanes/ultrafastlane/tusimple'
 
 # TRAIN
 epoch = 100
@@ -29,7 +29,7 @@ shp_loss_w = 0.0
 # EXP
 note = ''
 
-log_path = None
+log_path = '/home/sergei/git/lanes/ultrafastlane/logs'
 
 # FINETUNE or RESUME MODEL PATH
 finetune = None

@@ -1,28 +1,100 @@
 import json
 import os
+import typing as tp
 from pathlib import Path
 
 import bezier
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
 
-from lane import (Lane, calc_max_distance_between_lanes, draw_middle_lane,
-                  fill_spaces_between_lanes, get_horizontal_curves)
+from lane.lane import Lane
+from lane.utils import (
+    get_horizontal_curves,
+    cluster_lanes,
+    draw_lane_clusters,
+)
+
+
+def get_lanes(frame_info, horizontal_curves) -> tp.List[Lane]:
+    lanes = list()
+
+    for lane_index, lane_info in enumerate(frame_info['labels']):
+        if lane_info['category'] in ['crosswalk', 'road curb']:
+            continue
+
+        lane_nodes = np.array(lane_info['poly2d'][0]['vertices'])
+        lane_curve = bezier.Curve(
+            lane_nodes.T,
+            degree=lane_nodes.shape[0] - 1,
+        )
+        lane = Lane(
+            index=lane_index,
+            curve=lane_curve,
+            horizontal_curves=horizontal_curves,
+        )
+
+        if lane.y_min is None:
+            continue
+        else:
+            delta_y = lane.y_max - lane.y_min
+
+        if delta_y > 50:
+            delta_x = lane.x_max - lane.x_min
+            if delta_x != 0 and delta_y / delta_x > 0.2:
+                lanes.append(lane)
+
+    return lanes
+
+
+def process_frame(images_path, frame_info, horizontal_curves, mode):
+    image = cv2.imread(str(images_path / frame_info['name']))
+    if mode == 'write':
+        gt = np.zeros_like(image)
+    elif mode == 'show':
+        gt = image.copy()
+
+    lanes = get_lanes(frame_info, horizontal_curves=horizontal_curves)
+    lane_clusters = cluster_lanes(lanes)
+    gt = draw_lane_clusters(image=gt, lane_clusters=lane_clusters)
+
+    image = cv2.copyMakeBorder(
+        image[65:-65],
+        top=0,
+        bottom=0,
+        left=180,
+        right=180,
+        borderType=cv2.BORDER_CONSTANT,
+        value=0,
+    )
+    gt = cv2.copyMakeBorder(
+        gt[65:-65],
+        top=0,
+        bottom=0,
+        left=180,
+        right=180,
+        borderType=cv2.BORDER_CONSTANT,
+        value=0,
+    )
+
+    return image, gt
 
 
 def convert(
     images_path,
     frames_info,
-    culane_rgb_path,
-    culane_gt_path,
-    culane_list_path,
+    culane_rgb_path = None,
+    culane_gt_path = None,
+    culane_list_path = None,
     limit: int = 30,
+    mode: str = 'write',
 ) -> None:
     if limit == -1:
         limit = len(frames_info)
 
     horizontal_curves = get_horizontal_curves()
+
     list_file = open(culane_list_path, 'w')
 
     for frame_index in tqdm.tqdm(range(min(limit, len(frames_info)))):
@@ -30,85 +102,35 @@ def convert(
         if 'labels' not in frame_info.keys():
             continue
 
-        img = cv2.imread(str(images_path / frame_info['name']))
-        gt = np.zeros_like(img)
-        lanes = list()
-
-        for i, lane in enumerate(frame_info['labels']):
-            if lane['category'] in ['crosswalk', 'road curb']:
-                continue
-
-            lane_nodes = np.array(lane['poly2d'][0]['vertices'])
-            lane_curve = bezier.Curve(
-                lane_nodes.T,
-                degree=lane_nodes.shape[0] - 1,
-            )
-            lane = Lane(
-                index=i,
-                curve=lane_curve,
-                horizontal_curves=horizontal_curves,
-            )
-
-            if lane.y_min is None:
-                continue
-            else:
-                delta_y = lane.y_max - lane.y_min
-
-            if delta_y > 50:
-                delta_x = lane.x_max - lane.x_min
-                if delta_x != 0 and delta_y / delta_x > 0.2:
-                    lanes.append(lane)
-
-        forbidden_indices = set()
-
-        for i in range(len(lanes)):
-            for j in range(i + 1, len(lanes)):
-                lane_1 = lanes[i]
-                lane_2 = lanes[j]
-                dist = calc_max_distance_between_lanes(lane_1, lane_2)
-                if dist < 100:
-                    #gt = draw_middle_lane(gt, lane_1, lane_2)
-                    gt = fill_spaces_between_lanes(gt, lane_1, lane_2)
-                    forbidden_indices.add(i)
-                    forbidden_indices.add(j)
-
-        for i, lane in enumerate(lanes):
-            if i not in forbidden_indices:
-                gt = lane.draw(gt)
-
-        img = cv2.copyMakeBorder(
-            img[65:-65],
-            top=0,
-            bottom=0,
-            left=180,
-            right=180,
-            borderType=cv2.BORDER_CONSTANT,
-            value=0,
+        image, gt = process_frame(
+            images_path=images_path,
+            frame_info=frame_info,
+            horizontal_curves=horizontal_curves,
+            mode=mode,
         )
-        gt = cv2.copyMakeBorder(
-            gt[65:-65],
-            top=0,
-            bottom=0,
-            left=180,
-            right=180,
-            borderType=cv2.BORDER_CONSTANT,
-            value=0,
-        )
-        rgb_img_filename = '/rgb_images/' + frame_info['name']
-        gt_img_filename = '/gt/' + frame_info['name']
-        cv2.imwrite(rgb_img_filename, img)
-        #gt = gt[:, :, 1]
-        #print('gt', gt.shape)
-        cv2.imwrite(gt_img_filename, gt)
-        #from PIL import Image
-        #print('!', len(Image.open(culane_gt_path / frame_info['name']).split()))
-        list_file.write(f'{rgb_img_filename} {gt_img_filename} 1 1 1 1\n')
+
+        if mode == 'write':
+            assert culane_gt_path is not None, 'Some paths are None'
+            assert culane_rgb_path is not None, 'Some paths are None'
+            assert culane_list_path is not None, 'Some paths are None'
+
+            rgb_image_filename = '/rgb_images/' + frame_info['name']
+            gt_image_filename = '/gt/' + frame_info['name']
+
+            list_line = f'{rgb_image_filename} {gt_image_filename} 1 1 1 1\n'
+            list_file.write(list_line)
+
+            cv2.imwrite(str(culane_rgb_path / frame_info['name']), image)
+            cv2.imwrite(str(culane_gt_path / frame_info['name']), gt)
+        elif mode == 'show':
+            plt.imshow(gt)
+            plt.show()
 
     list_file.close()
 
 
 def main():
-    bdd100k_as_culane_path = Path('/home/sergei/Downloads/bdd100k_as_culane')
+    bdd100k_as_culane_path = Path('/home/sergei/Downloads/bdd100k_as_culane_small')
     bdd100k_as_culane_images_path = bdd100k_as_culane_path / 'rgb_images'
     bdd100k_as_culane_gt_path = bdd100k_as_culane_path / 'gt'
     bdd100k_as_culane_train_list_path = \
@@ -146,7 +168,7 @@ def main():
         bdd100k_as_culane_images_path,
         bdd100k_as_culane_gt_path,
         bdd100k_as_culane_train_list_path,
-        limit=-1,
+        limit=2,
     )
     convert(
         bdd100k_val_images_path,
@@ -154,7 +176,7 @@ def main():
         bdd100k_as_culane_images_path,
         bdd100k_as_culane_gt_path,
         bdd100k_as_culane_val_list_path,
-        limit=-1,
+        limit=2,
     )
 
 

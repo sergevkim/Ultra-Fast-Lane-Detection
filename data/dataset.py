@@ -1,3 +1,4 @@
+from numpy.core.numeric import cross
 import torch
 from PIL import Image
 import os

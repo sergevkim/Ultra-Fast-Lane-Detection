@@ -13,7 +13,6 @@ from model.model import ParsingNet
 from utils.common import merge_config
 from utils.dist_utils import dist_print
 
-
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
 
@@ -48,13 +47,13 @@ if __name__ == "__main__":
     net.eval()
 
     img_transforms = transforms.Compose([
-        transforms.ToPILImage(),
+        #transforms.ToPILImage(),
         transforms.Resize((288, 800)),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
     if cfg.dataset == 'CULane':
-        splits = ['test_nodrops.txt']
+        splits = ['test_nodrops_short.txt']
         """
         splits = [
             'test0_normal.txt',
@@ -100,7 +99,7 @@ if __name__ == "__main__":
         )
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         #video_file = split[:-3]+'avi'
-        video_file = 'videos/culane_padding_v5_nodrops.mp4'
+        video_file = 'videos/culane_padding_v5_nodrops_bdd.mp4'
         #video_file = 'wayray_resized.avi'
         print(video_file)
         vout = cv2.VideoWriter(video_file, fourcc , 30.0, (img_w, img_h))
@@ -126,7 +125,9 @@ if __name__ == "__main__":
             idx = np.arange(cfg.griding_num) + 1
             idx = idx.reshape(-1, 1, 1)
             loc = np.sum(prob * idx, axis=0)
+            print('??', out_j.shape)
             out_j = np.argmax(out_j, axis=0)
+            print('!!', out_j.shape)
             loc[out_j == cfg.griding_num] = 0
             out_j = loc
             #print('!!!!!', time.time() - s)

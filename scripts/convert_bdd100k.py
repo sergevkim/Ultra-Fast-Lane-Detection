@@ -114,14 +114,14 @@ def convert(
             assert culane_rgb_path is not None, 'Some paths are None'
             assert culane_list_path is not None, 'Some paths are None'
 
-            rgb_image_filename = '/rgb_images/' + frame_info['name']
-            gt_image_filename = '/gt/' + frame_info['name']
+            rgb_image_filename = '/rgb_images/' + frame_info['name'].replace('jpg', 'png')
+            gt_image_filename = '/gt/' + frame_info['name'].replace('jpg', 'png')
 
             list_line = f'{rgb_image_filename} {gt_image_filename} 1 1 1 1\n'
             list_file.write(list_line)
 
-            cv2.imwrite(str(culane_rgb_path / frame_info['name']), image)
-            cv2.imwrite(str(culane_gt_path / frame_info['name']), gt)
+            cv2.imwrite(str(culane_rgb_path / frame_info['name'].replace('jpg', 'png')), image)
+            cv2.imwrite(str(culane_gt_path / frame_info['name'].replace('jpg', 'png')), gt)
         elif mode == 'show':
             plt.imshow(gt)
             plt.show()

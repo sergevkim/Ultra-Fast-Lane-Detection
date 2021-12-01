@@ -59,8 +59,7 @@ class Lane:
         image,
         cluster_index: tp.Optional[int] = None,
     ) -> tp.Any:
-        image2 = np.zeros_like(image)
-
+        color = (cluster_index, cluster_index, cluster_index)
         prev_center = None
 
         for index in self.point_indices:
@@ -71,18 +70,14 @@ class Lane:
 
             if prev_center is not None:
                 if abs(prev_center[1] - center[1]) < 5:
-                    image2 = cv2.line(
-                        image2,
+                    image = cv2.line(
+                        image,
                         prev_center,
                         center,
-                        color=(1, 1, 1),
+                        color=color,
                         thickness=15,
                     )
 
             prev_center = center
-
-        print(image2[350, 500:1200, 1])
-        image[image2 > 0] = cluster_index + 1
-        #import ipdb; ipdb.set_trace()
 
         return image

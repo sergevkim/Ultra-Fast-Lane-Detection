@@ -163,18 +163,15 @@ def draw_middle_lane(
 
 def draw_lane_clusters(image, lane_clusters: tp.List[tp.List[Lane]]) -> tp.Any:
     for cluster_index, lane_cluster in enumerate(lane_clusters):
-        for lane in lane_cluster:
-            image = lane.draw(image, cluster_index=cluster_index)
-            print(cluster_index, len(lane_clusters))
+        for i, lane in enumerate(lane_cluster):
+            image = lane.draw(image, cluster_index=cluster_index+1)
 
-            #import ipdb; ipdb.set_trace()
-        print('------------')
 
-        #if len(lane_cluster) > 0:
-        #    image = fill_spaces_between_all_lanes(
-        #        image=image,
-        #        lanes=lane_cluster,
-        #        cluster_index=(cluster_index+1)*10,
-        #    )
+        if len(lane_cluster) > 0:
+            image = fill_spaces_between_all_lanes(
+                image=image,
+                lanes=lane_cluster,
+                cluster_index=cluster_index+1,
+            )
 
     return image
